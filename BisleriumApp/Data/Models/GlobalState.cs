@@ -1,4 +1,4 @@
-namespace BisleriumApp.Data;
+namespace BisleriumApp.Data.Models;
 
 public class GlobalState
 {

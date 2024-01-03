@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace BisleriumApp.Data;
+namespace BisleriumApp.Data.Enumerables;
 
 public class CoffeeChoice : IEnumerable<KeyValuePair<string, int>>
 {
@@ -19,7 +19,7 @@ public class CoffeeChoice : IEnumerable<KeyValuePair<string, int>>
         coffees.Add("Espresso", 120);
         coffees.Add("Latte", 180);
         coffees.Add("Cappuccino", 190);
-        coffees.Add("Americano",150);
+        coffees.Add("Americano", 150);
     }
 
     // Implement IEnumerable interface
@@ -38,7 +38,8 @@ public class CoffeeChoice : IEnumerable<KeyValuePair<string, int>>
         if (coffees.ContainsKey(coffeeType))
         {
             return coffees[coffeeType];
-        } else
+        }
+        else
         {
             return 0;
         }

@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace BisleriumApp.Data;
+namespace BisleriumApp.Data.Enumerables;
 
 public class AddInChoice : IEnumerable<KeyValuePair<string, int>>
 {

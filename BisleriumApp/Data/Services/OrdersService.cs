@@ -1,7 +1,9 @@
 ﻿
 using System.Text.Json;
 
-namespace BisleriumApp.Data;
+using BisleriumApp.Data.Models;
+
+namespace BisleriumApp.Data.Services;
 
 public static class OrdersService
 {
@@ -32,18 +34,25 @@ public static class OrdersService
         return JsonSerializer.Deserialize<List<OrderItem>>(json);
     }
 
-    public static List<OrderItem> Create(string coffee, string addIn, int totalPrice, Guid userId, string username, int coffeePrice, int addInPrice)
+    public static List<OrderItem> Create(string coffee, string addIn, int totalPrice, Guid userId, string phoneNumber, int coffeePrice, int addInPrice, bool isComplementary)
     {
         List<OrderItem> orders = GetAll();
+
+        if (phoneNumber == null || coffee == null)
+        {
+            throw new Exception("Order invalid! Check order credentials");
+        }
+
         orders.Add(new OrderItem
         {
             Coffee = coffee,
             AddIn = addIn,
             CreatedBy = userId,
-            Customer = username,
+            Customer = phoneNumber,
             CoffeePrice = coffeePrice,
             AddInPrice = addInPrice,
             TotalPrice = totalPrice,
+            isComplementary = isComplementary
         }) ;
 
         SaveAll(orders);
@@ -77,7 +86,7 @@ public static class OrdersService
     }
 
 
-    public static List<OrderItem> Update(Guid userId, Guid id, string coffee, string addIn, string username, int totalPrice, int coffeePrice, int addInPrice, bool isPaid)
+    public static List<OrderItem> Update(Guid userId, Guid id, string coffee, string addIn, string phoneNumber, int totalPrice, int coffeePrice, int addInPrice)
     {
         List<OrderItem> orders = GetAll();
         OrderItem orderToUpdate = orders.FirstOrDefault(x => x.Id == id);
@@ -88,6 +97,11 @@ public static class OrdersService
             throw new Exception("Order not found.");
         }
 
+        if (phoneNumber.Length == 0 || coffee.Length == 0)
+        {
+            throw new Exception("Order invalid! Check order credentials");
+        }
+
         var creator = UsersService.GetById(orderToUpdate.CreatedBy);
 
         if (user.Id == creator.Id || user.Role.ToString() == "Admin")
@@ -95,10 +109,9 @@ public static class OrdersService
             orderToUpdate.Coffee = coffee;
             orderToUpdate.AddIn = addIn;
             orderToUpdate.TotalPrice = totalPrice;
-            orderToUpdate.Customer = username;
+            orderToUpdate.Customer = phoneNumber;
             orderToUpdate.CoffeePrice = coffeePrice;
             orderToUpdate.AddInPrice = addInPrice;
-            orderToUpdate.IsPaid = isPaid;
             SaveAll(orders);
             return orders;
         } else

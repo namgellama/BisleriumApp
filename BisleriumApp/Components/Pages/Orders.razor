@@ -10,13 +10,13 @@
 <table class="table">
     <thead>
         <tr>
-            <th>Username</th>
+            <th>Customer</th>
             <th>Coffee</th>
             <th>Add In</th>
             <th>Total Price</th>
+            <th>Status</th>
             <th>Ordered At</th>
             <th>Created By</th>
-            <th>Payment Status</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -26,7 +26,21 @@
             foreach (var order in orderList)
             {
                 <tr>
-                    <td>@order.Customer</td>
+                    <td>
+                        <div class="d-flex flex-column">
+                        @order.Customer
+                        @{
+                            var customer = CustomersService.GetByPhoneNumer(order.Customer);
+                            if (customer == null)
+                            {
+                                 <span class="badge rounded-pill bg-secondary">Normal</span>
+                            } else
+                            {
+                                <span class="badge rounded-pill bg-warning">Member</span>   
+                            }
+                        }
+                        </div>
+                    </td>
                     <td>
                         <div>
                             <p class="my-0">@order.Coffee</p>
@@ -35,7 +49,7 @@
                     </td>
                     <td>
                         <div>
-                            @if (order.AddIn == "")
+                            @if (order.AddIn == null)
                             {
                                 <p class="my-0"></p>
                             } else
@@ -46,6 +60,15 @@
                         </div>
                     </td>
                     <td>Rs. @order.TotalPrice</td>
+                    <td>
+                        @if (order.isComplementary)
+                        {
+                            <span class="badge bg-success">Complementary</span>
+                        } else
+                        {
+                            <span class="badge bg-secondary">Normal</span>
+                        }
+                    </td>
                     <td>@order.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
                     <td>
                         @{
@@ -54,27 +77,7 @@
                         }
                     </td>
                     <td>
-                        <p>
-                        @if (order.IsPaid)
-                        {
-                            <span class="badge bg-success">Paid</span>
-                        } else
-                        {
-                            <span class="badge bg-warning text-black-50">Not Paid</span>
-
-                        }
-                        </p>
-
-                    </td> 
-                    <td>
-                        @if (!order.IsPaid)
-                        {
-                            <button class="btn btn-primary btn-sm m-1" type="button" @onclick="() => OpenPayOrderDialog(order)">
-                                <span class="oi oi-delete" /> Pay
-                            </button>
-                        }
-                        
-                        <button class="btn btn-secondary btn-sm m-1" type="button"
+                        <button class="btn btn-info text-white btn-sm m-1" type="button"
                                 @onclick="()=>OpenEditOrderDialog(order)">
                             <span class="oi oi-pencil" /> Edit
                         </button>
@@ -92,7 +95,7 @@
 
 @if (_showEditOrderDialog)
 {
-    <ModalDialog Title="@_dialogTitle" OnClose="@OnEditOrderDialogClose" OkLabel="@_dialogOkLabel" >
+    <ModalDialog Title="@_dialogTitle" OnClose="@OnEditOrderDialogClose" OkLabel="@_dialogOkLabel">
         <select class="form-select my-2" @onchange="HandleCoffeeTypeChange">
             <option value="">Select Coffee Type *</option>
             @{
@@ -116,15 +119,7 @@
         <div class="my-2">
             <label for="customerList" class="form-label">Customer</label>
             <input class="form-control" list="customerOptions" @bind="_orderModel.Customer" id="customerList" placeholder="Type to search...">
-            <datalist id="customerOptions">
-                @foreach (var user in _users)
-                {
-                    if (user.Role.ToString() == "Customer")
-                    {
-                        <option value=@user.Username />
-                    }
-                }
-            </datalist>
+           
         </div>
         <div class="align-self-end mt-4 d-flex flex-column align-items-end">
             <p class="my-0">Coffee Price: <span class="ms-2">Rs.  @_selectedCoffeePrice</span></p>
@@ -150,60 +145,47 @@
     </ModalDialog>
 }
 
-@if (_showPayOrderDialog)
-{
-    <ModalDialog Title="Pay Order" OnClose="@OnPayOrderDialogClose" OkLabel="Confirm">
-        <div class="form-floating my-3">
-            <input id="phoneNumber" type="text" class="form-control"  placeholder="Phone Number" @bind=_username />
-            <label for="phoneNumber">Phone Number</label>
-        </div>
-        <div class="form-floating my-3">
-            <input id="password" type="password" class="form-control" placeholder="Password" @bind=_password />
-            <label for="password">Password</label>
-        </div>
-        @if (!string.IsNullOrEmpty(_payOrderErrorMessage))
-        {
-            <AlertMessage Type="danger" Message="@_payOrderErrorMessage" />
-        }
-    </ModalDialog>
-}
-
 
 
 @code {
     [CascadingParameter]
     private GlobalState _globalState { get; set; }
-    private List<User> _users { get; set; }
+    private List<Customer> _customers { get; set; }
+    private List<OrderItem> _orders { get; set; }
+
+
+
     CoffeeChoice _coffees = new CoffeeChoice();
     AddInChoice _addIns = new AddInChoice();
-    private List<OrderItem> _orders { get; set; }
+
     private OrderItem _orderModel { get; set; }
     private OrderItem _deleteOrder { get; set; }
+
     private string _selectedCoffeeType { get; set; }
     private int _selectedCoffeePrice { get; set; }
     private string _selectedAddInType { get; set; }
     private int _selectedAddInPrice { get; set; }
     private int _totalPrice { get; set; }
-    private string _customer { get; set; }
+
+
     private string _dialogTitle { get; set; }
     private string _dialogOkLabel { get; set; }
+
     private bool _showEditOrderDialog { get; set; }
     private bool _showDeleteOrderDialog { get; set; }
     private bool _showPayOrderDialog { get; set; }
+
     private string _editOrderErrorMessage { get; set; }
     private string _deleteOrderErrorMessage { get; set; }
-    private string _payOrderErrorMessage { get; set; }
-    private bool _showCustomerLogin { get; set; }
 
-    private string _username { get; set; }
-    private string _password { get; set; }
-    private User _customerLogin { get; set; }
 
 
     protected override void OnInitialized()
     {
         _orders = OrdersService.GetAll();
-        _users = UsersService.GetAll();
+        _customers = CustomersService.GetAll();
+
+
     }
 
     private void HandleCoffeeTypeChange(ChangeEventArgs e)
@@ -227,6 +209,30 @@
 
     }
 
+    private bool GetComplementaryStatus()
+    {
+        int customerCount = 0;
+        Customer customer = CustomersService.GetByPhoneNumer(_orderModel.Customer);
+
+        foreach (var order in _orders)
+        {
+            if (order.Customer == _orderModel.Customer && customer != null && order.isComplementary == false)
+            {
+                customerCount++;
+            }
+        }
+
+        if (customerCount != 0 && customerCount % 10 == 0)
+        {
+            return true;
+        }   
+        else
+        {
+            return false;
+        }
+    }
+
+
     private void OpenAddOrderDialog()
     {
         _dialogTitle = "Add Order";
@@ -234,7 +240,6 @@
         _orderModel = new OrderItem();
         _orderModel.Id = Guid.Empty;
         _showEditOrderDialog = true;
-        _showCustomerLogin = true;
     }
 
     private void OpenEditOrderDialog(OrderItem editOrder)
@@ -261,6 +266,15 @@
         _showDeleteOrderDialog = true;
     }
 
+    private void ClearInputs()
+    {
+        _selectedCoffeeType = null;
+        _selectedAddInType = null;
+        _selectedAddInPrice = 0;
+        _selectedCoffeePrice = 0;
+        _totalPrice = 0;
+    }
+
     private void OnEditOrderDialogClose(bool isCancel)
     {
         if (isCancel)
@@ -269,21 +283,33 @@
             _selectedAddInPrice = 0;
             _selectedCoffeePrice = 0;
             _totalPrice = 0;
+            _editOrderErrorMessage = null;
         }
         else
         {
             try
             {
                 _editOrderErrorMessage = "";
-                if (_orderModel.Id == Guid.Empty)
+
+                bool isComplementary = GetComplementaryStatus();
+
+                if (isComplementary)
                 {
-                    _orders = OrdersService.Create(coffee: _selectedCoffeeType, addIn: _selectedAddInType, totalPrice: _totalPrice, userId: _globalState.CurrentUser.Id, username: _orderModel.Customer, coffeePrice: _selectedCoffeePrice, addInPrice: _selectedAddInPrice);
+                    _orderModel.isComplementary = true;
                 } else
                 {
-                    _orders = OrdersService.Update(coffee: _selectedCoffeeType, addIn: _selectedAddInType, totalPrice: _totalPrice, userId: _globalState.CurrentUser.Id, username: _orderModel.Customer, id: _orderModel.Id, coffeePrice: _selectedCoffeePrice, addInPrice: _selectedAddInPrice, isPaid: _orderModel.IsPaid);
+                    _orderModel.isComplementary = false;
+                }
+
+                if (_orderModel.Id == Guid.Empty)
+                {
+                    _orders = OrdersService.Create(coffee: _selectedCoffeeType, addIn: _selectedAddInType, coffeePrice: _selectedCoffeePrice, addInPrice: _selectedAddInPrice, totalPrice: _totalPrice, userId: _globalState.CurrentUser.Id, phoneNumber: _orderModel.Customer, isComplementary: _orderModel.isComplementary);
+                } else
+                {
+                    _orders = OrdersService.Update(coffee: _selectedCoffeeType, addIn: _selectedAddInType, coffeePrice: _selectedCoffeePrice, addInPrice: _selectedAddInPrice, totalPrice: _totalPrice, userId: _globalState.CurrentUser.Id, phoneNumber: _orderModel.Customer, id: _orderModel.Id);
                 }
                 _showEditOrderDialog = false;
-
+                ClearInputs();
             }
             catch (Exception e)
             {
@@ -312,42 +338,6 @@
             catch (Exception e)
             {
                 _deleteOrderErrorMessage = e.Message;
-            }
-        }
-    }
-
-    private void OpenPayOrderDialog(OrderItem order)
-    {
-        _orderModel = order;
-        _showPayOrderDialog = true;
-    } 
-
-    private void OnPayOrderDialogClose(bool isCancel)
-    {
-        if (isCancel)
-        {
-
-            _showPayOrderDialog = false;
-        }
-        else
-        {
-            try
-            {
-                _payOrderErrorMessage = "";
-
-                _customerLogin = UsersService.Login(_username, _password);
-                if (_customerLogin != null)
-                {
-                    _orders = OrdersService.Update(coffee: _selectedCoffeeType, addIn: _selectedAddInType, totalPrice: _totalPrice, userId: _globalState.CurrentUser.Id, username: _orderModel.Customer, id: _orderModel.Id, coffeePrice: _selectedCoffeePrice, addInPrice: _selectedAddInPrice, isPaid: true);
-                    _showPayOrderDialog = false;
-                    _username = "";
-                    _password = "";
-                }
-               
-            }
-            catch (Exception e)
-            {
-                _payOrderErrorMessage = e.Message;
             }
         }
     }

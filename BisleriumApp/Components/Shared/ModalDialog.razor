@@ -28,13 +28,12 @@
     public string Title { get; set; }
     [Parameter]
     public RenderFragment ChildContent { get; set; }
-
     [Parameter]
     public string OkLabel { get; set; }
-
     [Parameter]
     public EventCallback<bool> OnClose { get; set; }
 
+    
 
     private Task ModalCancel()
     {

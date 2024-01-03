@@ -22,8 +22,6 @@
     <tbody>
         @foreach (var user in _users)
         {
-            if (user.Role.ToString() != "Customer")
-            {
                 <tr>
                     <td>@user.Username</td>
                     <td>@user.Role.ToString()</td>
@@ -41,8 +39,6 @@
                         </button>
                     </td>
                 </tr>
-            }
-            
         }
     </tbody>
 </table>

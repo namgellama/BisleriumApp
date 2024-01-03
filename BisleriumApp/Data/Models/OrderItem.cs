@@ -1,7 +1,6 @@
-﻿
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace BisleriumApp.Data;
+namespace BisleriumApp.Data.Models;
 
 public class OrderItem
 {
@@ -14,8 +13,8 @@ public class OrderItem
     public int TotalPrice {get; set;}
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public string Customer { get; set; }
-    public bool IsPaid { get; set; } = false;
     public Guid CreatedBy { get; set; }
 
+    public bool isComplementary { get; set; }
     
 }

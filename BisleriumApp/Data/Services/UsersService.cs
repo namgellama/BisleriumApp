@@ -1,6 +1,9 @@
 using System.Text.Json;
 
-namespace BisleriumApp.Data;
+using BisleriumApp.Data.Models;
+using BisleriumApp.Data.Enums;
+
+namespace BisleriumApp.Data.Services;
 
 public static class UsersService
 {
@@ -72,6 +75,7 @@ public static class UsersService
         List<User> users = GetAll();
         return users.FirstOrDefault(x => x.Id == id);
     }
+
 
     public static List<User> Delete(Guid id)
     {
