@@ -59,6 +59,11 @@ public static class Utils
         return Path.Combine(GetAppDirectoryPath(), "customers.json");
     }
 
+    public static string GetAppCoffeesFilePath()
+    {
+        return Path.Combine(GetAppDirectoryPath(), "coffees.json");
+    }
+
 
     public static string GetOrdersFilePath()
     {

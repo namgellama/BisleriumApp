@@ -1,0 +1,180 @@
+﻿@page "/coffees"
+
+<nav class="navbar navbar-light bg-light justify-content-between">
+    <h1 class="navbar-brand mb-0 h1">Coffees</h1>
+    <button class="btn btn-primary" type="button" @onclick="OpenAddCoffeeDialog">
+        <span class="oi oi-plus" /> Add
+    </button>
+</nav>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Created At</th>
+            <th>CreatedBy</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var coffee in _coffees)
+        {
+            <tr>
+                <td>@coffee.Name</td>
+                <td>@coffee.Price</td>
+                <td>@coffee.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
+                <td>
+                    @{
+                        var creator = UsersService.GetById(coffee.CreatedBy);
+                        <span>@(creator == null ? "Unknown" : creator.Username)</span>
+                    }
+                </td>
+                <td>
+                     <button class="btn btn-info text-white btn-sm m-1" type="button"
+                                @onclick="()=>OpenEditCoffeeDialog(coffee)">
+                            <span class="oi oi-pencil" /> Edit
+                        </button>
+                    <button class="btn btn-outline-danger btn-sm" type="button" @onclick="()=>OpenDeleteCoffeeDialog(coffee)">
+                        <span class="oi oi-delete" /> Delete
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (_showEditCoffeeDialog)
+{
+    <ModalDialog Title="Add Coffee" OnClose="@OnEditCoffeeDialogClose" OkLabel="Add">
+            <div class="form-floating my-3">
+                <input id="name" type="text" class="form-control"  placeholder="Name" @bind="_coffeeModel.Name"  />
+                <label for="name">Name</label>
+            </div
+            <div class="form-floating my-3">
+                <input id="price" type="number" class="form-control" placeholder="Price"  @bind="_coffeeModel.Price" />
+                <label for="price">Price</label>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_editCoffeeErrorMessage))
+            {
+                <AlertMessage Type="danger" Message="@_editCoffeeErrorMessage" />
+            }
+    </ModalDialog>
+}
+
+@if (_showDeleteCoffeeDialog)
+{
+    <ModalDialog Title="Delete User" OnClose="@OnDeleteCoffeeDialogClose" OkLabel="Confirm">
+        <p>Are you sure you want to delete <strong>@_deleteCoffee.Name</strong> Coffee and their data?</p>
+        @if (!string.IsNullOrEmpty(_deleteCoffeeErrorMessage))
+        {
+            <AlertMessage Type="danger" Message="@_deleteCoffeeErrorMessage" />
+        }
+    </ModalDialog>
+}
+
+@code {
+    [CascadingParameter]
+    private GlobalState _globalState { get; set; }
+    private List<Coffee> _coffees { get; set; }
+
+    private Coffee _coffeeModel { get; set; }
+
+    private string _dialogTitle { get; set; }
+    private string _dialogOkLabel { get; set; }
+
+    private bool _showEditCoffeeDialog { get; set; }
+    private bool _showDeleteCoffeeDialog { get; set; }
+    private bool _showPayCoffeeDialog { get; set; }
+
+    private string _editCoffeeErrorMessage { get; set; }
+    private string _deleteCoffeeErrorMessage { get; set; }
+
+    private Coffee _deleteCoffee { get; set; }
+
+
+    protected override void OnInitialized()
+    {
+        _coffees = CoffeesService.GetAll();
+    }
+
+    private void OpenAddCoffeeDialog()
+    {
+        _dialogTitle = "Add Coffee";
+        _dialogOkLabel = "Add";
+        _coffeeModel = new Coffee();
+        _coffeeModel.Id = Guid.Empty;
+        _showEditCoffeeDialog = true;
+    }
+
+    private void OpenEditCoffeeDialog(Coffee editCoffee)
+    {
+        _dialogTitle = "Edit Coffee";
+        _dialogOkLabel = "Save";
+
+        _coffeeModel = editCoffee;
+
+        _showEditCoffeeDialog = true;
+    }
+
+    
+    private void OpenDeleteCoffeeDialog(Coffee coffee)
+    {
+        _deleteCoffee = coffee;
+        _showDeleteCoffeeDialog = true;
+    }
+
+    private void OnEditCoffeeDialogClose(bool isCancel)
+    {
+        if (isCancel)
+        {
+
+            _showEditCoffeeDialog = false;
+            _editCoffeeErrorMessage = null;
+        }
+        else
+        {
+            try
+            {
+                _editCoffeeErrorMessage = "";
+                if (_coffeeModel.Id == Guid.Empty)
+                {
+                    _coffees = CoffeesService.Create(userId: _globalState.CurrentUser.Id, name: _coffeeModel.Name, price: _coffeeModel.Price);
+                } else
+                {
+                    _coffees = CoffeesService.Update(userId: _globalState.CurrentUser.Id, id: _coffeeModel.Id, name: _coffeeModel.Name, price: _coffeeModel.Price);
+                }
+                _showEditCoffeeDialog = false;
+            }
+            catch (Exception e)
+            {
+                _editCoffeeErrorMessage = e.Message;
+            }
+        }
+    }
+
+    private void OnDeleteCoffeeDialogClose(bool isCancel)
+    {
+        if (isCancel)
+        {
+
+            _showDeleteCoffeeDialog = false;
+            _deleteCoffee = null;
+        }
+        else
+        {
+            try
+            {
+                _deleteCoffeeErrorMessage = "";
+                _coffees = CoffeesService.Delete(id: _deleteCoffee.Id, userId: _globalState.CurrentUser.Id);
+                _showDeleteCoffeeDialog = false;
+                _deleteCoffee = null;
+            }
+            catch (Exception e)
+            {
+                _deleteCoffeeErrorMessage = e.Message;
+            }
+        }
+    }
+}

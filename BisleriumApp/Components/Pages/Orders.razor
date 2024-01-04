@@ -99,9 +99,9 @@
         <select class="form-select my-2" @onchange="HandleCoffeeTypeChange">
             <option value="">Select Coffee Type *</option>
             @{
-                foreach (var coffee in _coffees)
+                foreach (var coffee in _coffeeList)
                 {
-                    <option value=@coffee.Key selected=@(_orderModel.Id != Guid.Empty && coffee.Key == _selectedCoffeeType)>@coffee.Key</option>
+                    <option value=@coffee.Name selected=@(_orderModel.Id != Guid.Empty && coffee.Name == _selectedCoffeeType)>@coffee.Name</option>
                 }
             }
 
@@ -152,7 +152,7 @@
     private GlobalState _globalState { get; set; }
     private List<Customer> _customers { get; set; }
     private List<OrderItem> _orders { get; set; }
-
+    private List<Coffee> _coffeeList { get; set; }
 
 
     CoffeeChoice _coffees = new CoffeeChoice();
@@ -166,7 +166,6 @@
     private string _selectedAddInType { get; set; }
     private int _selectedAddInPrice { get; set; }
     private int _totalPrice { get; set; }
-
 
     private string _dialogTitle { get; set; }
     private string _dialogOkLabel { get; set; }
@@ -184,7 +183,7 @@
     {
         _orders = OrdersService.GetAll();
         _customers = CustomersService.GetAll();
-
+        _coffeeList = CoffeesService.GetAll();
 
     }
 
@@ -208,6 +207,8 @@
         }
 
     }
+
+
 
     private bool GetComplementaryStatus()
     {
@@ -310,6 +311,7 @@
                 }
                 _showEditOrderDialog = false;
                 ClearInputs();
+
             }
             catch (Exception e)
             {
