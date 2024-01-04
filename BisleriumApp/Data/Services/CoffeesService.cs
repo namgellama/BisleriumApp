@@ -122,4 +122,17 @@ public static class CoffeesService
             throw new Exception("Not authorized");
         }
     }
+
+    public static int GetCoffeePrice(Guid id)
+    {
+        List<Coffee> coffees = GetAll();
+        return coffees.FirstOrDefault(x => x.Id == id).Price;
+    }
+    
+    public static string GetCoffeeName(Guid id)
+    {
+        List<Coffee> coffees = GetAll();
+        return coffees.FirstOrDefault(x => x.Id == id).Name;
+    }
+
 }

@@ -49,7 +49,7 @@
                     </td>
                     <td>
                         <div>
-                            @if (order.AddIn == null)
+                            @if (order.AddIn == null || order.AddIn.Length == 0)
                             {
                                 <p class="my-0"></p>
                             } else
@@ -77,10 +77,17 @@
                         }
                     </td>
                     <td>
-                        <button class="btn btn-info text-white btn-sm m-1" type="button"
-                                @onclick="()=>OpenEditOrderDialog(order)">
-                            <span class="oi oi-pencil" /> Edit
-                        </button>
+                        @{
+                            TimeSpan timeDifference = DateTime.Now - order.CreatedAt;
+                            bool disable = timeDifference.TotalHours >= 12;
+                            string buttonClass = disable ? "btn btn-secondary btn-sm m-1" : "btn btn-info text-white btn-sm m-1";
+
+                            <button class=@buttonClass type="button"
+                                    @onclick="()=>OpenEditOrderDialog(order)" disabled=@disable>
+                                <span class="oi oi-pencil" /> Edit
+                            </button>
+                        }
+                        
                         <button class="btn btn-danger btn-sm m-1" type="button" @onclick="() => OpenDeleteOrderDialog(order)">
                             <span class="oi oi-delete" /> Delete
                         </button>
@@ -99,9 +106,9 @@
         <select class="form-select my-2" @onchange="HandleCoffeeTypeChange">
             <option value="">Select Coffee Type *</option>
             @{
-                foreach (var coffee in _coffeeList)
+                foreach (var coffee in _coffees)
                 {
-                    <option value=@coffee.Name selected=@(_orderModel.Id != Guid.Empty && coffee.Name == _selectedCoffeeType)>@coffee.Name</option>
+                    <option value=@coffee.Id selected=@(_orderModel.Coffee == coffee.Name)>@coffee.Name</option>
                 }
             }
 
@@ -111,7 +118,7 @@
             @{
                 foreach (var addIn in _addIns)
                 {
-                    <option value=@addIn.Key selected=@(_orderModel.Id != Guid.Empty && addIn.Key == _selectedAddInType)>@addIn.Key</option>
+                    <option value=@addIn.Id selected=@(_orderModel.AddIn == addIn.Name)>@addIn.Name</option>
                 }
             }
 
@@ -152,11 +159,10 @@
     private GlobalState _globalState { get; set; }
     private List<Customer> _customers { get; set; }
     private List<OrderItem> _orders { get; set; }
-    private List<Coffee> _coffeeList { get; set; }
+    private List<Coffee> _coffees { get; set; }
+    private List<AddIns> _addIns { get; set; }
 
 
-    CoffeeChoice _coffees = new CoffeeChoice();
-    AddInChoice _addIns = new AddInChoice();
 
     private OrderItem _orderModel { get; set; }
     private OrderItem _deleteOrder { get; set; }
@@ -183,27 +189,53 @@
     {
         _orders = OrdersService.GetAll();
         _customers = CustomersService.GetAll();
-        _coffeeList = CoffeesService.GetAll();
-
+        _coffees = CoffeesService.GetAll();
+        _addIns = AddInsService.GetAll();
     }
+
+
 
     private void HandleCoffeeTypeChange(ChangeEventArgs e)
-    {   
-        _selectedCoffeeType = e.Value.ToString();
-        _selectedCoffeePrice = _coffees.GetCoffeePrice(_selectedCoffeeType);
-        _totalPrice = _selectedCoffeePrice + _selectedAddInPrice;
+    {
+        if (e.Value.ToString() != null)
+        {
+            _selectedCoffeeType = e.Value.ToString();
+            if (_selectedCoffeeType.Length == 0)
+            {
+                _selectedCoffeePrice = 0;
+                _selectedCoffeeType = "";
+            } else
+            {
+                _selectedCoffeePrice = CoffeesService.GetCoffeePrice(Guid.Parse(_selectedCoffeeType));
+                _selectedCoffeeType = CoffeesService.GetCoffeeName(Guid.Parse(e.Value.ToString()));
+
+            }
+            _totalPrice = _selectedCoffeePrice + _selectedAddInPrice;
+        }
     }
+
 
     private void HandleAddInTypeChange(ChangeEventArgs e)
     {  
-        if (_selectedCoffeeType != null)
-        {
+        if (e.Value.ToString() != null)
+        {   
             _selectedAddInType = e.Value.ToString();
-            _selectedAddInPrice = _addIns.GetAddInPrice(_selectedAddInType);
+
+            if (_selectedAddInType.Length == 0)
+            {
+                _selectedAddInPrice = 0;
+                _selectedAddInType = "";
+            } else
+            {
+                _selectedAddInPrice = AddInsService.GetAddInsPrice(Guid.Parse(_selectedAddInType));
+                _selectedAddInType = AddInsService.GetAddInsName(Guid.Parse(e.Value.ToString()));
+            }
+            
             _totalPrice = _selectedCoffeePrice + _selectedAddInPrice;
         } else
         {
             _totalPrice = _selectedAddInPrice;
+
         }
 
     }

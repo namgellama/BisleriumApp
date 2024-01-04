@@ -1,0 +1,180 @@
+﻿@page "/addIns"
+
+<nav class="navbar navbar-light bg-light justify-content-between">
+    <h1 class="navbar-brand mb-0 h1">AddIns</h1>dIns
+    <button class="btn btn-primary" type="button" @onclick="OpenAddAddInsDialog">
+        <span class="oi oi-plus" /> Add
+    </button>
+</nav>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Created At</th>
+            <th>CreatedBy</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var addIns in _addIns)
+        {
+            <tr>
+                <td>@addIns.Name</td>
+                <td>@addIns.Price</td>
+                <td>@addIns.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
+                <td>
+                    @{
+                        var creator = UsersService.GetById(addIns.CreatedBy);
+                        <span>@(creator == null ? "Unknown" : creator.Username)</span>
+                    }
+                </td>
+                <td>
+                     <button class="btn btn-info text-white btn-sm m-1" type="button"
+                                @onclick="()=>OpenEditAddInsDialog(addIns)">
+                            <span class="oi oi-pencil" /> Edit
+                        </button>
+                    <button class="btn btn-outline-danger btn-sm" type="button" @onclick="()=>OpenDeleteAddInsDialog(addIns)">
+                        <span class="oi oi-delete" /> Delete
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (_showEditAddInsDialog)
+{
+    <ModalDialog Title="Add addIns" OnClose="@OnEditAddInsDialogClose" OkLabel="Add">
+            <div class="form-floating my-3">
+                <input id="name" type="text" class="form-control"  placeholder="Name" @bind="_addInsModel.Name"  />
+                <label for="name">Name</label>
+            </div
+            <div class="form-floating my-3">
+                <input id="price" type="number" class="form-control" placeholder="Price"  @bind="_addInsModel.Price" />
+                <label for="price">Price</label>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_editAddInsErrorMessage))
+            {
+                <AlertMessage Type="danger" Message="@_editAddInsErrorMessage" />
+            }
+    </ModalDialog>
+}
+
+@if (_showDeleteAddInsDialog)
+{
+    <ModalDialog Title="Delete User" OnClose="@OnDeleteAddInsDialogClose" OkLabel="Confirm">
+        <p>Are you sure you want to delete <strong>@_deleteAddIns.Name</strong> addIns and their data?</p>
+        @if (!string.IsNullOrEmpty(_deleteAddInsErrorMessage))
+        {
+            <AlertMessage Type="danger" Message="@_deleteAddInsErrorMessage" />
+        }
+    </ModalDialog>
+}
+
+@code {
+    [CascadingParameter]
+    private GlobalState _globalState { get; set; }
+    private List<AddIns> _addIns { get; set; }
+
+    private AddIns _addInsModel { get; set; }
+
+    private string _dialogTitle { get; set; }
+    private string _dialogOkLabel { get; set; }
+
+    private bool _showEditAddInsDialog { get; set; }
+    private bool _showDeleteAddInsDialog { get; set; }
+    private bool _showPayAddInsDialog { get; set; }
+
+    private string _editAddInsErrorMessage { get; set; }
+    private string _deleteAddInsErrorMessage { get; set; }
+
+    private AddIns _deleteAddIns { get; set; }
+
+
+    protected override void OnInitialized()
+    {
+        _addIns = AddInsService.GetAll();
+    }
+
+    private void OpenAddAddInsDialog()
+    {
+        _dialogTitle = "Add Add-ins";
+        _dialogOkLabel = "Add";
+        _addInsModel = new AddIns();
+        _addInsModel.Id = Guid.Empty;
+        _showEditAddInsDialog = true;
+    }
+
+    private void OpenEditAddInsDialog(AddIns editAddIns)
+    {
+        _dialogTitle = "Edit addIns";
+        _dialogOkLabel = "Save";
+
+        _addInsModel = editAddIns;
+
+        _showEditAddInsDialog = true;
+    }
+
+    
+    private void OpenDeleteAddInsDialog(AddIns addIns)
+    {
+        _deleteAddIns = addIns;
+        _showDeleteAddInsDialog = true;
+    }
+
+    private void OnEditAddInsDialogClose(bool isCancel)
+    {
+        if (isCancel)
+        {
+
+            _showEditAddInsDialog = false;
+            _editAddInsErrorMessage = null;
+        }
+        else
+        {
+            try
+            {
+                _editAddInsErrorMessage = "";
+                if (_addInsModel.Id == Guid.Empty)
+                {
+                    _addIns = AddInsService.Create(userId: _globalState.CurrentUser.Id, name: _addInsModel.Name, price: _addInsModel.Price);
+                } else
+                {
+                    _addIns = AddInsService.Update(userId: _globalState.CurrentUser.Id, id: _addInsModel.Id, name: _addInsModel.Name, price: _addInsModel.Price);
+                }
+                _showEditAddInsDialog = false;
+            }
+            catch (Exception e)
+            {
+                _editAddInsErrorMessage = e.Message;
+            }
+        }
+    }
+
+    private void OnDeleteAddInsDialogClose(bool isCancel)
+    {
+        if (isCancel)
+        {
+
+            _showDeleteAddInsDialog = false;
+            _deleteAddIns = null;
+        }
+        else
+        {
+            try
+            {
+                _deleteAddInsErrorMessage = "";
+                _addIns = AddInsService.Delete(id: _deleteAddIns.Id, userId: _globalState.CurrentUser.Id);
+                _showDeleteAddInsDialog = false;
+                _deleteAddIns = null;
+            }
+            catch (Exception e)
+            {
+                _deleteAddInsErrorMessage = e.Message;
+            }
+        }
+    }
+}
