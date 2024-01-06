@@ -230,7 +230,7 @@
                 _selectedAddInPrice = AddInsService.GetAddInsPrice(Guid.Parse(_selectedAddInType));
                 _selectedAddInType = AddInsService.GetAddInsName(Guid.Parse(e.Value.ToString()));
             }
-            
+
             _totalPrice = _selectedCoffeePrice + _selectedAddInPrice;
         } else
         {
@@ -244,27 +244,25 @@
 
     private bool GetComplementaryStatus()
     {
-        int customerCount = 0;
+        int orderCount = 0;
+        int requiredNumber = 10;
         Customer customer = CustomersService.GetByPhoneNumer(_orderModel.Customer);
 
         foreach (var order in _orders)
         {
-            if (order.Customer == _orderModel.Customer && customer != null && order.isComplementary == false)
+            if (order.Customer == _orderModel.Customer && customer != null)
             {
-                customerCount++;
+                orderCount++;
             }
         }
 
-        if (customerCount != 0 && customerCount % 10 == 0)
+
+        if (orderCount > 0 && orderCount % requiredNumber == 0)
         {
             return true;
-        }   
-        else
-        {
-            return false;
         }
+        return false;
     }
-
 
     private void OpenAddOrderDialog()
     {
