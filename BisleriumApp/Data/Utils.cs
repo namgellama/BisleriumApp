@@ -45,7 +45,7 @@ public static class Utils
     public static string GetAppDirectoryPath()
     {
         return Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "Bislerium"
         );
     }

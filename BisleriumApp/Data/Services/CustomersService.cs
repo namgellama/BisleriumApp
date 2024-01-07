@@ -32,6 +32,27 @@ public static class CustomersService
 
         return JsonSerializer.Deserialize<List<Customer>>(json);
     }
+
+     public static int GetTotalOrders(string customerPhone)
+    {
+        List<OrderItem> orders = OrdersService.GetAll();
+
+        var ordersList = orders.FindAll(x => x.Customer == customerPhone);
+        var filteredOrdersList = ordersList.FindAll(x => x.isComplementary == false);
+
+        return filteredOrdersList.Count;
+    }
+
+
+    public static OrderItem GetLastOrder(string customerPhone)
+    {
+        List<OrderItem> orders = OrdersService.GetAll();
+
+        var lastOrderItem = orders.Where(x => x.Customer == customerPhone).OrderByDescending(x => x.CreatedAt).FirstOrDefault();
+
+        return lastOrderItem;
+    }
+
     public static List<Customer> Create(Guid userId, string phoneNumber)
     {
         List<Customer> customers = GetAll();

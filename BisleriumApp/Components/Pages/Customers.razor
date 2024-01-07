@@ -11,6 +11,7 @@
     <thead>
         <tr>
             <th>Phone number</th>
+            <th>Total no of orders</th>
             <th>Created At</th>
             <th>CreatedBy</th>
             <th>Actions</th>
@@ -21,6 +22,10 @@
         {
                 <tr>
                     <td>@customer.PhoneNumber</td>
+                <td>@{
+                        var customerOrders = CustomersService.GetTotalOrders(customer.PhoneNumber); 
+                        <span>@customerOrders</span>
+                }</td>
                     <td>@customer.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
                     <td>
                         @{

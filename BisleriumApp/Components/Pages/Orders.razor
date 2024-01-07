@@ -242,27 +242,7 @@
 
 
 
-    private bool GetComplementaryStatus()
-    {
-        int orderCount = 0;
-        int requiredNumber = 10;
-        Customer customer = CustomersService.GetByPhoneNumer(_orderModel.Customer);
 
-        foreach (var order in _orders)
-        {
-            if (order.Customer == _orderModel.Customer && customer != null)
-            {
-                orderCount++;
-            }
-        }
-
-
-        if (orderCount > 0 && orderCount % requiredNumber == 0)
-        {
-            return true;
-        }
-        return false;
-    }
 
     private void OpenAddOrderDialog()
     {
@@ -322,15 +302,30 @@
             {
                 _editOrderErrorMessage = "";
 
-                bool isComplementary = GetComplementaryStatus();
 
-                if (isComplementary)
-                {
-                    _orderModel.isComplementary = true;
-                } else
+                int totalOrders = CustomersService.GetTotalOrders(_orderModel.Customer);
+                var lastOrder = CustomersService.GetLastOrder(_orderModel.Customer);
+
+                if (totalOrders == 0)
                 {
                     _orderModel.isComplementary = false;
+                } else
+                {
+                    if (totalOrders % 10 == 0)
+                    {
+                            if (lastOrder.isComplementary)
+                            {
+                                _orderModel.isComplementary = false;
+                            } else
+                            {
+                                _orderModel.isComplementary = true;
+                            }
+                    } else
+                    {
+                        _orderModel.isComplementary = false;
+                    }
                 }
+
 
                 if (_orderModel.Id == Guid.Empty)
                 {
