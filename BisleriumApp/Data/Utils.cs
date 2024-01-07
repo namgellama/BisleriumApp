@@ -74,4 +74,22 @@ public static class Utils
     {
         return Path.Combine(GetAppDirectoryPath(), "orders.json");
     }
+
+
+
+    public static int CountWeekdays(DateTime date)
+    {
+        int weekdays = 0;
+        for (int day = 1; day <= date.Day; day++)
+        {
+            DateTime _date = new DateTime(date.Year, date.Month, day);
+
+            if (_date.DayOfWeek != DayOfWeek.Saturday && _date.DayOfWeek != DayOfWeek.Sunday)
+            {
+                weekdays++;
+            }
+        }
+
+        return weekdays;
+    }
 }

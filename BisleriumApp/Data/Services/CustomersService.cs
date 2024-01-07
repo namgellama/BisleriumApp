@@ -1,5 +1,5 @@
 ﻿using System.Text.Json;
-
+using BisleriumApp.Data.Enums;
 using BisleriumApp.Data.Models;
 
 namespace BisleriumApp.Data.Services;
@@ -53,6 +53,40 @@ public static class CustomersService
         return lastOrderItem;
     }
 
+    public static int GetCustomerOrdersLastMonthCount(string phoneNumber)
+    {
+        Customer customer = GetByPhoneNumer(phoneNumber);
+        List<OrderItem> orders = OrdersService.GetAll();
+
+        DateTime currentDate = DateTime.Now;
+
+        DateTime firstDayOfCurrentMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
+        DateTime lastDayOfPreviousMonth = firstDayOfCurrentMonth.AddDays(-1);
+
+        int lastMonth = lastDayOfPreviousMonth.Month;
+        int lastMonthYear = lastDayOfPreviousMonth.Year;
+
+        int ordersCount = 0;
+
+        if (customer != null)
+        {
+            var customerOrders = orders.Where(order => order.Customer == phoneNumber);
+
+            foreach (var customerOrder in customerOrders)
+            {
+                if (customerOrder.CreatedAt.Date.Month == lastMonth && customerOrder.CreatedAt.Date.Year == lastMonthYear)
+                {
+                    ordersCount++;
+                }
+            }
+        }
+
+        return ordersCount;
+        
+    }
+
+   
+
     public static List<Customer> Create(Guid userId, string phoneNumber)
     {
         List<Customer> customers = GetAll();
@@ -70,6 +104,20 @@ public static class CustomersService
                 CreatedBy = userId
             }
         );
+        SaveAll(customers);
+        return customers;
+    }
+    public static List<Customer> Update(string phoneNumber, CustomerRole role)
+    {
+        List<Customer> customers = GetAll();
+        Customer customerToUpdate = customers.FirstOrDefault(x => x.PhoneNumber == phoneNumber);
+
+        if (customerToUpdate == null)
+        {
+            throw new Exception("Customer not found.");
+        }
+
+        customerToUpdate.CustomerRole  = role;
         SaveAll(customers);
         return customers;
     }

@@ -10,6 +10,7 @@
 <table class="table">
     <thead>
         <tr>
+            <th>S.N.</th>
             <th>Customer</th>
             <th>Coffee</th>
             <th>Add In</th>
@@ -23,21 +24,21 @@
     <tbody>
         @{
             IEnumerable<OrderItem> orderList = _orders;
+            int count = 1;
             foreach (var order in orderList)
             {
                 <tr>
+                <td>@count</td>
                     <td>
                         <div class="d-flex flex-column">
                         @order.Customer
-                        @{
-                            var customer = CustomersService.GetByPhoneNumer(order.Customer);
-                            if (customer == null)
-                            {
-                                 <span class="badge rounded-pill bg-secondary">Normal</span>
-                            } else
-                            {
-                                <span class="badge rounded-pill bg-warning">Member</span>   
-                            }
+                            @{
+                                var customer = CustomersService.GetByPhoneNumer(order.Customer);
+                                if (customer != null)
+                                {
+                                    var className = customer.CustomerRole == CustomerRole.Regular ? "badge rounded-pill bg-success" : "badge rounded-pill bg-warning";
+                                    <span class=@className>@customer.CustomerRole.ToString()[0]</span>
+                            } 
                         }
                         </div>
                     </td>
@@ -94,7 +95,7 @@
                         
                     </td>
                 </tr>
-
+                count++;
             }
         }
     </tbody>
@@ -131,6 +132,15 @@
         <div class="align-self-end mt-4 d-flex flex-column align-items-end">
             <p class="my-0">Coffee Price: <span class="ms-2">Rs.  @_selectedCoffeePrice</span></p>
             <p class="my-0">Add Ins Price: <span class="ms-2">Rs. @_selectedAddInPrice</span></p>
+            @{
+                Customer customer = CustomersService.GetByPhoneNumer(_orderModel.Customer);
+
+                if (customer != null && customer.CustomerRole == CustomerRole.Regular)
+                {
+                    _discount = true;
+                    <p class="my-0">Discount: <span class="ms-2">10%</span></p>
+                }
+            }
             <p class="my-2 fw-bold">Total Price:  <span class="ms-2">Rs. @_totalPrice</span></p>
         </div>
 
@@ -172,6 +182,7 @@
     private string _selectedAddInType { get; set; }
     private int _selectedAddInPrice { get; set; }
     private int _totalPrice { get; set; }
+    private bool _discount { get; set; }
 
     private string _dialogTitle { get; set; }
     private string _dialogOkLabel { get; set; }
@@ -191,8 +202,9 @@
         _customers = CustomersService.GetAll();
         _coffees = CoffeesService.GetAll();
         _addIns = AddInsService.GetAll();
-    }
 
+
+    }
 
 
     private void HandleCoffeeTypeChange(ChangeEventArgs e)
@@ -208,9 +220,12 @@
             {
                 _selectedCoffeePrice = CoffeesService.GetCoffeePrice(Guid.Parse(_selectedCoffeeType));
                 _selectedCoffeeType = CoffeesService.GetCoffeeName(Guid.Parse(e.Value.ToString()));
-
+                UpdateTotalPrice();
             }
-            _totalPrice = _selectedCoffeePrice + _selectedAddInPrice;
+
+            UpdateTotalPrice();
+
+
         }
     }
 
@@ -231,17 +246,24 @@
                 _selectedAddInType = AddInsService.GetAddInsName(Guid.Parse(e.Value.ToString()));
             }
 
-            _totalPrice = _selectedCoffeePrice + _selectedAddInPrice;
-        } else
-        {
-            _totalPrice = _selectedAddInPrice;
 
-        }
+            UpdateTotalPrice();
+
+        } 
 
     }
 
+    private void UpdateTotalPrice()
+    {
 
+        _totalPrice = _selectedCoffeePrice + _selectedAddInPrice;
 
+        if (_discount)
+        {
+            double discountAmount = 0.1 * _totalPrice;
+            _totalPrice -= (int)discountAmount;
+        }
+    }
 
 
     private void OpenAddOrderDialog()
@@ -284,6 +306,7 @@
         _selectedAddInPrice = 0;
         _selectedCoffeePrice = 0;
         _totalPrice = 0;
+        _discount = false;
     }
 
     private void OnEditOrderDialogClose(bool isCancel)
@@ -295,13 +318,14 @@
             _selectedCoffeePrice = 0;
             _totalPrice = 0;
             _editOrderErrorMessage = null;
+            _orderModel.Customer = null;
+            _discount = false;
         }
         else
         {
             try
             {
                 _editOrderErrorMessage = "";
-
 
                 int totalOrders = CustomersService.GetTotalOrders(_orderModel.Customer);
                 var lastOrder = CustomersService.GetLastOrder(_orderModel.Customer);

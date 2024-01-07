@@ -1,6 +1,6 @@
 ﻿
 using System.Text.Json;
-
+using BisleriumApp.Data.Enums;
 using BisleriumApp.Data.Models;
 
 namespace BisleriumApp.Data.Services;
@@ -33,15 +33,103 @@ public static class OrdersService
         var json = File.ReadAllText(ordersFilePath);
         return JsonSerializer.Deserialize<List<OrderItem>>(json);
     }
+    public static List<OrderItem> GetCustomerOrders(string  phoneNumber)
+    {
+        var orders = GetAll();
+        var customerOrders = orders.Where(order => order.Customer == phoneNumber).ToList();
+
+        return customerOrders;
+    }
+
+
+    public static List<OrderItem> GetCustomerOrdersLastMonth(string phoneNumber)
+    {
+        Customer customer = CustomersService.GetByPhoneNumer(phoneNumber);
+        List<OrderItem> orders = OrdersService.GetAll();
+        List<OrderItem> customerOrdersLastMonth = new List<OrderItem>();
+
+        DateTime currentDate = DateTime.Now;
+
+        DateTime firstDayOfCurrentMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
+        DateTime lastDayOfPreviousMonth = firstDayOfCurrentMonth.AddDays(-1);
+
+        int lastMonth = lastDayOfPreviousMonth.Month;
+        int lastMonthYear = lastDayOfPreviousMonth.Year;
+
+
+        if (customer != null)
+        {
+            var customerOrders = orders.Where(order => order.Customer == phoneNumber);
+
+            foreach (var customerOrder in customerOrders)
+            {
+                if (customerOrder.CreatedAt.Date.Month == lastMonth && customerOrder.CreatedAt.Date.Year == lastMonthYear)
+                {
+                    customerOrdersLastMonth.Add(customerOrder);
+                }
+            }
+        }
+
+        return customerOrdersLastMonth;
+
+    }
 
     public static List<OrderItem> Create(string coffee, string addIn, int totalPrice, Guid userId, string phoneNumber, int coffeePrice, int addInPrice, bool isComplementary)
     {
         List<OrderItem> orders = GetAll();
+        Customer customer = CustomersService.GetByPhoneNumer(phoneNumber);
+        int customerOrdersLastMonthCount = CustomersService.GetCustomerOrdersLastMonthCount(phoneNumber);
+        List<OrderItem> customerOrdersLastMonth = GetCustomerOrdersLastMonth(phoneNumber);
 
-        if (phoneNumber == null || coffee == null)
+        if (phoneNumber == null || coffee == null || coffee.Length == 0 || phoneNumber.Length == 0)
         {
             throw new Exception("Order invalid! Check order credentials");
         }
+
+        int totalOrder = 0;
+        bool regularMember = false;
+
+        DateTime currentDate = DateTime.Now;
+
+        DateTime firstDayofCurrentMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
+        DateTime lastDayOfPreviousMonth = firstDayofCurrentMonth.AddDays(-1);
+
+
+        int totalWeekdaysLastMonth = Utils.CountWeekdays(lastDayOfPreviousMonth);
+
+
+        if (customer != null)
+        {
+            List<DateTime> orderDateTimesList = new List<DateTime>();
+
+            if (customerOrdersLastMonthCount < totalWeekdaysLastMonth)
+            {
+                regularMember = false;
+            }
+            else
+            {
+                foreach (var order in customerOrdersLastMonth)
+                {
+                    if (order.CreatedAt.DayOfWeek != DayOfWeek.Saturday && order.CreatedAt.DayOfWeek != DayOfWeek.Sunday)
+                    {
+                        if (!orderDateTimesList.Contains(order.CreatedAt.Date)) {
+                            totalOrder++;
+                            orderDateTimesList.Add(order.CreatedAt.Date);
+                        }
+                    }
+                }
+
+                if (totalOrder >= totalWeekdaysLastMonth) 
+                {
+                    regularMember = true;
+                } else
+                {
+                    regularMember = false;
+                }
+            }
+            
+        }
+
 
         orders.Add(new OrderItem
         {
@@ -56,6 +144,16 @@ public static class OrdersService
         }) ;
 
         SaveAll(orders);
+
+        if (regularMember)
+        {
+            CustomersService.Update(phoneNumber, CustomerRole.Regular); 
+        } else
+        {
+            CustomersService.Update(phoneNumber, CustomerRole.Normal);
+        }
+
+
         return orders;
     }
 

@@ -12,6 +12,7 @@
         <tr>
             <th>Phone number</th>
             <th>Total no of orders</th>
+            <th>Status</th>
             <th>Created At</th>
             <th>CreatedBy</th>
             <th>Actions</th>
@@ -26,6 +27,17 @@
                         var customerOrders = CustomersService.GetTotalOrders(customer.PhoneNumber); 
                         <span>@customerOrders</span>
                 }</td>
+                    <td>
+                    @{
+                        if (customer.CustomerRole == CustomerRole.Regular)
+                        {
+                            <span class="badge rounded-pill bg-success">@customer.CustomerRole</span>
+                        } else
+                        {
+                            <span class="badge rounded-pill bg-warning">@customer.CustomerRole</span>
+                        }
+                    }
+                    </td>
                     <td>@customer.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
                     <td>
                         @{
