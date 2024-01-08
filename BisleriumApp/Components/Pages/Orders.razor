@@ -82,11 +82,11 @@
                             TimeSpan timeDifference = DateTime.Now - order.CreatedAt;
                             bool disable = timeDifference.TotalHours >= 12;
                             string buttonClass = disable ? "btn btn-secondary btn-sm m-1" : "btn btn-info text-white btn-sm m-1";
-
-                            <button class=@buttonClass type="button"
+                            
+                                <button class=@buttonClass type="button"
                                     @onclick="()=>OpenEditOrderDialog(order)" disabled=@disable>
                                 <span class="oi oi-pencil" /> Edit
-                            </button>
+                            </button> 
                         }
                         
                         <button class="btn btn-danger btn-sm m-1" type="button" @onclick="() => OpenDeleteOrderDialog(order)">
@@ -126,18 +126,17 @@
         </select>
         <div class="my-2">
             <label for="customerList" class="form-label">Customer</label>
-            <input class="form-control" list="customerOptions" @bind="_orderModel.Customer" id="customerList" placeholder="Type to search...">
+            <input class="form-control" list="customerOptions" value=@(_edit ? _orderModel.Customer : _selectedCustomer) @onchange="HandleCustomerChange" id="customerList" placeholder="Type to search..." readonly=@_edit>
+            <!--<input class="form-control" list="customerOptions" @bind="_orderModel.Customer" id="customerList" placeholder="Type to search...">-->
            
         </div>
         <div class="align-self-end mt-4 d-flex flex-column align-items-end">
             <p class="my-0">Coffee Price: <span class="ms-2">Rs.  @_selectedCoffeePrice</span></p>
             <p class="my-0">Add Ins Price: <span class="ms-2">Rs. @_selectedAddInPrice</span></p>
             @{
-                Customer customer = CustomersService.GetByPhoneNumer(_orderModel.Customer);
-
-                if (customer != null && customer.CustomerRole == CustomerRole.Regular)
+               
+                if (_discount)
                 {
-                    _discount = true;
                     <p class="my-0">Discount: <span class="ms-2">10%</span></p>
                 }
             }
@@ -183,6 +182,7 @@
     private int _selectedAddInPrice { get; set; }
     private int _totalPrice { get; set; }
     private bool _discount { get; set; }
+    private string _selectedCustomer { get; set; }
 
     private string _dialogTitle { get; set; }
     private string _dialogOkLabel { get; set; }
@@ -193,6 +193,7 @@
 
     private string _editOrderErrorMessage { get; set; }
     private string _deleteOrderErrorMessage { get; set; }
+    private bool _edit { get; set; }
 
 
 
@@ -253,6 +254,28 @@
 
     }
 
+    private void HandleCustomerChange(ChangeEventArgs e)
+    {  
+        if (e.Value.ToString() != null)
+        {   
+            _selectedCustomer = e.Value.ToString();
+
+            Customer customer = CustomersService.GetByPhoneNumer(_selectedCustomer);
+
+            if (customer != null && customer.CustomerRole == CustomerRole.Regular)
+            {
+                _discount = true;
+                UpdateTotalPrice();
+            } else
+            {
+                _discount = false;
+            }
+
+        } 
+
+    }
+
+
     private void UpdateTotalPrice()
     {
 
@@ -291,6 +314,17 @@
 
 
         _showEditOrderDialog = true;
+        _edit = true;
+
+        var customer = CustomersService.GetByPhoneNumer(_orderModel.Customer); 
+
+        if (customer != null && customer.CustomerRole == CustomerRole.Regular)
+        {
+            _discount = true;
+        } else
+        {
+            _discount = false;
+        }
     }
 
     private void OpenDeleteOrderDialog(OrderItem order)
@@ -327,8 +361,8 @@
             {
                 _editOrderErrorMessage = "";
 
-                int totalOrders = CustomersService.GetTotalOrders(_orderModel.Customer);
-                var lastOrder = CustomersService.GetLastOrder(_orderModel.Customer);
+                int totalOrders = CustomersService.GetTotalOrders(_selectedCustomer);
+                var lastOrder = CustomersService.GetLastOrder(_selectedCustomer);
 
                 if (totalOrders == 0)
                 {
@@ -353,7 +387,7 @@
 
                 if (_orderModel.Id == Guid.Empty)
                 {
-                    _orders = OrdersService.Create(coffee: _selectedCoffeeType, addIn: _selectedAddInType, coffeePrice: _selectedCoffeePrice, addInPrice: _selectedAddInPrice, totalPrice: _totalPrice, userId: _globalState.CurrentUser.Id, phoneNumber: _orderModel.Customer, isComplementary: _orderModel.isComplementary);
+                    _orders = OrdersService.Create(coffee: _selectedCoffeeType, addIn: _selectedAddInType, coffeePrice: _selectedCoffeePrice, addInPrice: _selectedAddInPrice, totalPrice: _totalPrice, userId: _globalState.CurrentUser.Id, phoneNumber: _selectedCustomer, isComplementary: _orderModel.isComplementary);
                 } else
                 {
                     _orders = OrdersService.Update(coffee: _selectedCoffeeType, addIn: _selectedAddInType, coffeePrice: _selectedCoffeePrice, addInPrice: _selectedAddInPrice, totalPrice: _totalPrice, userId: _globalState.CurrentUser.Id, phoneNumber: _orderModel.Customer, id: _orderModel.Id);
