@@ -34,19 +34,19 @@ public static class CoffeesService
         return JsonSerializer.Deserialize<List<Coffee>>(json);
     }
 
-    public static List<Coffee> Create(Guid userId, string name, int price)
+    public static List<Coffee> Create(Guid userId, string name, int price, string username, string password)
     {
         List<Coffee> coffees = GetAll();
-        bool coffeeNameExists = coffees.Any(x => x.Name == name);
+        bool coffeeNameExists = coffees.Any(x => name != null && x.Name.ToLower().Trim() == name.ToLower().Trim());
 
         if (coffeeNameExists)
         {
             throw new Exception("Coffee already exists.");
         }
 
-        if (name == null || price == 0)
+        if (name == null || price <= 0 || name.Length == 0)
         {
-            throw new Exception("Null value detected!");
+            throw new Exception("Empty value detected!");
         }
 
         var creator = UsersService.GetById(userId);
@@ -56,6 +56,9 @@ public static class CoffeesService
             throw new Exception("Not authorized.");
         }
 
+        User user = UsersService.Login(username, password);
+
+        
         coffees.Add(
             new Coffee
             {
@@ -93,7 +96,7 @@ public static class CoffeesService
     }
 
 
-    public static List<Coffee> Update(Guid userId, Guid id, string name, int price)
+    public static List<Coffee> Update(Guid userId, Guid id, string name, int price, string username, string password)
     {
         List<Coffee> coffees = GetAll();
         Coffee coffeeToUpdate = coffees.FirstOrDefault(x => x.Id == id);
@@ -109,6 +112,7 @@ public static class CoffeesService
             throw new Exception("Order invalid! Check order credentials");
         }
 
+        User user = UsersService.Login(username, password);
 
         if (creator.Role == Role.Admin)
         {

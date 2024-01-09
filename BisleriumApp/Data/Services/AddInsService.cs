@@ -34,19 +34,19 @@ public static class AddInsService
         return JsonSerializer.Deserialize<List<AddIns>>(json);
     }
 
-    public static List<AddIns> Create(Guid userId, string name, int price)
+    public static List<AddIns> Create(Guid userId, string name, int price, string username, string password)
     {
         List<AddIns> addIns = GetAll();
-        bool addInsNameExists = addIns.Any(x => x.Name == name);
+        bool addInsNameExists = addIns.Any(x => name != null && x.Name.ToLower().Trim() == name.ToLower().Trim());
 
         if (addInsNameExists)
         {
             throw new Exception("AddIns already exists.");
         }
 
-        if (name == null || price == 0)
+        if (name == null || price <= 0 || name.Length == 0)
         {
-            throw new Exception("Null value detected!");
+            throw new Exception("Empty value detected!");
         }
 
         var creator = UsersService.GetById(userId);
@@ -55,6 +55,8 @@ public static class AddInsService
         {
             throw new Exception("Not authorized.");
         }
+
+        User user = UsersService.Login(username, password);
 
         addIns.Add(
             new AddIns
@@ -93,7 +95,7 @@ public static class AddInsService
     }
 
 
-    public static List<AddIns> Update(Guid userId, Guid id, string name, int price)
+    public static List<AddIns> Update(Guid userId, Guid id, string name, int price, string username, string password)
     {
         List<AddIns> addIns = GetAll();
         AddIns addInsToUpdate = addIns.FirstOrDefault(x => x.Id == id);
@@ -109,6 +111,7 @@ public static class AddInsService
             throw new Exception("Order invalid! Check order credentials");
         }
 
+        User user = UsersService.Login(username, password);
 
         if (creator.Role == Role.Admin)
         {

@@ -55,6 +55,10 @@
                 <input id="price" type="number" class="form-control" placeholder="Price"  @bind="_coffeeModel.Price" />
                 <label for="price">Price</label>
             </div>
+            <div class="form-floating my-3">
+                <input id="password" type="password" class="form-control" placeholder="Price"  @bind="_password" />
+                <label for="password">Admin Password</label>
+            </div>
 
             @if (!string.IsNullOrEmpty(_editCoffeeErrorMessage))
             {
@@ -93,6 +97,8 @@
 
     private Coffee _deleteCoffee { get; set; }
 
+    private string _password { get; set; }
+
 
     protected override void OnInitialized()
     {
@@ -118,7 +124,7 @@
         _showEditCoffeeDialog = true;
     }
 
-    
+
     private void OpenDeleteCoffeeDialog(Coffee coffee)
     {
         _deleteCoffee = coffee;
@@ -132,6 +138,7 @@
 
             _showEditCoffeeDialog = false;
             _editCoffeeErrorMessage = null;
+            _password = null;
         }
         else
         {
@@ -140,12 +147,13 @@
                 _editCoffeeErrorMessage = "";
                 if (_coffeeModel.Id == Guid.Empty)
                 {
-                    _coffees = CoffeesService.Create(userId: _globalState.CurrentUser.Id, name: _coffeeModel.Name, price: _coffeeModel.Price);
+                    _coffees = CoffeesService.Create(userId: _globalState.CurrentUser.Id, name: _coffeeModel.Name, price: _coffeeModel.Price, username: _globalState.CurrentUser.Username, password: _password);
                 } else
                 {
-                    _coffees = CoffeesService.Update(userId: _globalState.CurrentUser.Id, id: _coffeeModel.Id, name: _coffeeModel.Name, price: _coffeeModel.Price);
+                    _coffees = CoffeesService.Update(userId: _globalState.CurrentUser.Id, id: _coffeeModel.Id, name: _coffeeModel.Name, price: _coffeeModel.Price, username: _globalState.CurrentUser.Username, password: _password);
                 }
                 _showEditCoffeeDialog = false;
+                _password = null;
             }
             catch (Exception e)
             {

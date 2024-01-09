@@ -13,43 +13,49 @@
     
     </nav>
 
-    <div class="d-flex justify-content-between my-2">
+    <div>
         @{
             var user = _globalState.CurrentUser;
             if (user != null && user.Role == Role.Admin)
             {
-                <div class="dropdown">
-                    <button data-toggle="dropdown" type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                       Generate Report By Month 
-                    </button>
-                    <ul class="dropdown-menu">
+                <div class="d-flex justify-content-between my-2">
+                    <div class="dropdown">
+                        <button data-toggle="dropdown" type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                           Generate Report By Month 
+                        </button>
+                        <ul class="dropdown-menu">
                     
-                            @{
-                                foreach (var month in _months)
-                                {
-                                <li>
-                                    <button disabled=@(
-                                             DateTime.ParseExact(month, "MMMM", CultureInfo.InvariantCulture).Month > _currentDate.Month)
-                                            class="btn btn-primary my-1 dropdown-item" type="button" @onclick="() => GenerateMonthlyReport(month)">
-                                        @month
-                                    </button>
-                                </li>
+                                @{
+                                    foreach (var month in _months)
+                                    {
+                                    <li>
+                                        <button disabled=@(
+                                                 DateTime.ParseExact(month, "MMMM", CultureInfo.InvariantCulture).Month > _currentDate.Month)
+                                                class="btn btn-primary my-1 dropdown-item" type="button" @onclick="() => GenerateMonthlyReport(month)">
+                                            @month
+                                        </button>
+                                    </li>
+                                    }
                                 }
-                            }
                     
-                    </ul>
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-primary" @onclick="() => GenerateParticularDayReport(DateTime.Now.Day, DateTime.Now.Month, DateTime.Now.Year)">
+                        Generate Today's Report
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="GenerateReport">
+                        Generate Till Now Report
+                    </button>
                 </div>
-           
             }
         }
 
-        <button type="button" class="btn btn-primary" @onclick="() => GenerateParticularDayReport(DateTime.Now.Day, DateTime.Now.Month, DateTime.Now.Year)">
-           Generate Today's Report
-        </button>
-        <button type="button" class="btn btn-primary" @onclick="GenerateReport">
-            Generate Till Now Report
-        </button>
+       
     </div>
+</div>
+
+<div class="d-flex">
+    <input type="search" class="form-control search" placeholder="Search" @oninput="SearchCustomerName" />
 </div>
 
 <table class="table">
@@ -61,7 +67,15 @@
             <th>Add In</th>
             <th>Total Price</th>
             <th>Status</th>
-            <th>Ordered At</th>
+            <th>
+                <div class="d-flex">
+                    Ordered At
+                    <a class='btn text-@(_sortBy == "orderedAt" ? "primary" : "secondary")' data-mdb-toggle="tooltip"
+                       @onclick='()=>SortByHandler("orderedAt")'>
+                        <span class='oi oi-sort-@(_sortBy == "orderedAt" ? _sortDirection : "ascending")' />
+                    </a>
+                </div>
+            </th>
             <th>Created By</th>
             <th>Actions</th>
         </tr>
@@ -69,6 +83,11 @@
     <tbody>
         @{
             IEnumerable<OrderItem> orderList = _orders;
+            if (_sortBy == "orderedAt")
+            {
+                orderList = _sortDirection == "ascending" ? orderList.OrderBy(t => t.CreatedAt) : orderList.OrderByDescending(t =>
+                t.CreatedAt);
+            }
             int count = 1;
             foreach (var order in orderList)
             {
@@ -244,6 +263,9 @@
     private List<string> _months { get; set; }
     private DateTime _currentDate { get; set; }
 
+    private string _sortBy = "orderedAt";
+    private string _sortDirection = "ascending";
+
 
     protected override void OnInitialized()
     {
@@ -258,6 +280,33 @@
         _currentDate = DateTime.Now;
     }
 
+
+    private void SortByHandler(string sortByName)
+    {
+        if (_sortBy == sortByName)
+        {
+            _sortDirection = _sortDirection == "ascending" ? "descending" : "ascending";
+        }
+        else
+        {
+            _sortBy = sortByName;
+            _sortDirection = "ascending";
+        }
+    }
+
+    private void SearchCustomerName(ChangeEventArgs e)
+    {
+        var searchTerm = e.Value.ToString();
+        if (!string.IsNullOrEmpty(searchTerm) && searchTerm.Length > 2)
+        {
+            _orders = OrdersService.GetAll().Where(t =>
+            t.Customer.ToLower().Contains(searchTerm.ToLower())).ToList();
+        }
+        else
+        {
+            _orders = OrdersService.GetAll();
+        }
+    }
 
     private void HandleCoffeeTypeChange(ChangeEventArgs e)
     {
@@ -392,6 +441,8 @@
         _selectedCoffeePrice = 0;
         _totalPrice = 0;
         _discount = false;
+        _selectedCustomer = null;
+        _edit = false;
     }
 
     private void OnEditOrderDialogClose(bool isCancel)
@@ -405,6 +456,7 @@
             _editOrderErrorMessage = null;
             _orderModel.Customer = null;
             _discount = false;
+           
         }
         else
         {
@@ -513,24 +565,16 @@
 
     private async Task GenerateParticularDayReport(int day, int month, int year)
     {
-        try
-        {
-            var htmlContent = GenerateHtmlForParticularDayOrders(day, month, year);
 
-            var Renderer = new IronPdf.ChromePdfRenderer();
-            Renderer.RenderingOptions.PaperSize = IronPdf.Rendering.PdfPaperSize.A4;
+        var htmlContent = GenerateHtmlForParticularDayOrders(day, month, year);
 
-            var doc = Renderer.RenderHtmlAsPdf(htmlContent);
+        var Renderer = new IronPdf.ChromePdfRenderer();
+        Renderer.RenderingOptions.PaperSize = IronPdf.Rendering.PdfPaperSize.A4;
+        var doc = Renderer.RenderHtmlAsPdf(htmlContent);
 
-            using var Content = new DotNetStreamReference(stream: doc.Stream);
+        using var Content = new DotNetStreamReference(stream: doc.Stream);
 
-            await JS.InvokeVoidAsync("SubmitHTML", $"{day}_{month}_{year}_order_report.pdf", Content);
-        }
-        catch (Exception ex)
-        {
-            // Handle the exception (log, display an error message, etc.)
-            Console.WriteLine($"Exception in GenerateParticularDayReport: {ex.Message}");
-        }
+        await JS.InvokeVoidAsync("SubmitHTML", $"{day}_{month}_{year}_order_report.pdf", Content);
     }
 
 
@@ -546,54 +590,60 @@
 
         int count = 1;
 
-
-        htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Customer</th><th>Coffee</th><th>Add In</th>" +
+        if (orderList.Count() > 0)
+        {
+            htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Customer</th><th>Coffee</th><th>Add In</th>" +
                "<th>Total Price</th><th>Status</th><th>Ordered At</th><th>Created By</th></tr></thead><tbody>");
 
-        foreach (var order in orderList)
+            foreach (var order in orderList)
+            {
+                var customer = CustomersService.GetByPhoneNumer(order.Customer);
+
+                htmlBuilder.AppendLine($"<tr><td>{count}</td><td>{order.Customer}" +
+                    $"<span style=\"background-color: {(customer != null && customer.CustomerRole == CustomerRole.Regular ? "#28a745" : "#ffc107")};" +
+                    $"color: #fff; margin: 3px; padding: 2px 2rem;\" class=\"badge\">{(customer != null ? customer.CustomerRole.ToString()[0] : null)}</span></td>" +
+                    $"<td>{order.Coffee}</td><td>{order.AddIn}</td><td>{order.TotalPrice}</td><td>" +
+                    $"<span style=\"background-color: {(order.isComplementary ? "#28a745" : "#ffc107")}; color: #fff; padding: 3px 1.5rem;\"" +
+                    $"class=\"badge\">{(order.isComplementary ? "Complementary" : "Normal")}</span></td><td>{order.CreatedAt.ToString("MMMM dd, yyyy h: mm tt")}</td>" +
+                    $"<td>{Utils.GetUserName(order.CreatedBy)}</td></tr>");
+                count++;
+            }
+
+            htmlBuilder.AppendLine("</tbody></table>");
+
+            htmlBuilder.AppendLine($"<h2>Top 5 Coffees - {day}/{month}/{year}</h1>");
+            htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Coffee</th><th>Quantity</th></tr></thead><tbody>");
+
+            Dictionary<string, int> topFiveCoffees = OrdersService.GetTop5CoffeesForParticularDay(day, month, year);
+            int tableTwoCount = 1;
+            foreach (var item in topFiveCoffees)
+            {
+                htmlBuilder.AppendLine($"<tr><td>{tableTwoCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
+                tableTwoCount++;
+            }
+            htmlBuilder.AppendLine("</tbody></table>");
+
+            htmlBuilder.AppendLine($"<h2 style=\"margin: 2rem 0;\">Top 5 Add-ins - {day}/{month}/{year}</h1>");
+            htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Add Ins</th><th>Quantity</th></tr></thead><tbody>");
+
+            Dictionary<string, int> topFiveAddIns = OrdersService.GetTop5AddInsForParticularDay(day, month, year);
+            int tableThreeCount = 1;
+            foreach (var item in topFiveAddIns)
+            {
+                htmlBuilder.AppendLine($"<tr><td>{tableThreeCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
+                tableThreeCount++;
+            }
+            htmlBuilder.AppendLine("</tbody></table>");
+
+
+            int revenue = OrdersService.GetRevenueForParticularDay(day, month, year);
+
+            htmlBuilder.AppendLine($"<h2>Revenue for {day}/{month}/{year}: Rs. {revenue}</h2>");
+
+        } else
         {
-            var customer = CustomersService.GetByPhoneNumer(order.Customer);
-
-            htmlBuilder.AppendLine($"<tr><td>{count}</td><td>{order.Customer}" +
-                $"<span style=\"background-color: {(customer != null && customer.CustomerRole == CustomerRole.Regular ? "#28a745" : "#ffc107")};" +
-                $"color: #fff; margin: 3px; padding: 2px 2rem;\" class=\"badge\">{(customer != null ? customer.CustomerRole.ToString()[0] : null)}</span></td>" +
-                $"<td>{order.Coffee}</td><td>{order.AddIn}</td><td>{order.TotalPrice}</td><td>" +
-                $"<span style=\"background-color: {(order.isComplementary ? "#28a745" : "#ffc107")}; color: #fff; padding: 3px 1.5rem;\"" +
-                $"class=\"badge\">{(order.isComplementary ? "Complementary" : "Normal")}</span></td><td>{order.CreatedAt.ToString("MMMM dd, yyyy h: mm tt")}</td>" +
-                $"<td>{Utils.GetUserName(order.CreatedBy)}</td></tr>");
-            count++;
+            htmlBuilder.AppendLine($"<h2>No Orders in {day}/{month}/{year}</h2>");
         }
-
-        htmlBuilder.AppendLine("</tbody></table>");
-
-        htmlBuilder.AppendLine($"<h2>Top 5 Coffees - {day}/{month}/{year}</h1>");
-        htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Coffee</th><th>Quantity</th></tr></thead><tbody>");
-
-        Dictionary<string, int> topFiveCoffees = OrdersService.GetTop5CoffeesForParticularDay(day, month, year);
-        int tableTwoCount = 1;
-        foreach (var item in topFiveCoffees)
-        {
-            htmlBuilder.AppendLine($"<tr><td>{tableTwoCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
-            tableTwoCount++;
-        }
-        htmlBuilder.AppendLine("</tbody></table>");
-
-        htmlBuilder.AppendLine($"<h2 style=\"margin: 2rem 0;\">Top 5 Add-ins - {day}/{month}/{year}</h1>");
-        htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Add Ins</th><th>Quantity</th></tr></thead><tbody>");
-
-        Dictionary<string, int> topFiveAddIns = OrdersService.GetTop5AddInsForParticularDay(day, month, year);
-        int tableThreeCount = 1;
-        foreach (var item in topFiveAddIns)
-        {
-            htmlBuilder.AppendLine($"<tr><td>{tableThreeCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
-            tableThreeCount++;
-        }
-        htmlBuilder.AppendLine("</tbody></table>");
-
-
-        int revenue = OrdersService.GetRevenueForParticularDay(day, month, year);
-
-        htmlBuilder.AppendLine($"<h2>Revenue for {day}/{month}/{year}: Rs. {revenue}</h2>");
 
 
 
@@ -614,53 +664,57 @@
         IEnumerable<OrderItem> orderList = OrdersService.GetParticularMonthOrders(month);
         int count = 1;
 
-        htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Customer</th><th>Coffee</th><th>Add In</th>" +
-               "<th>Total Price</th><th>Status</th><th>Ordered At</th><th>Created By</th></tr></thead><tbody>");
-
-        foreach (var order in orderList)
+        if (orderList.Count() > 0)
         {
-            var customer = CustomersService.GetByPhoneNumer(order.Customer);
+            htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Customer</th><th>Coffee</th><th>Add In</th>" +
+              "<th>Total Price</th><th>Status</th><th>Ordered At</th><th>Created By</th></tr></thead><tbody>");
 
-            htmlBuilder.AppendLine($"<tr><td>{count}</td><td>{order.Customer}" +
-                $"<span style=\"background-color: {(customer != null && customer.CustomerRole == CustomerRole.Regular ? "#28a745" : "#ffc107")};" +
-                $"color: #fff; margin: 3px; padding: 2px 2rem;\" class=\"badge\">{(customer != null ? customer.CustomerRole.ToString()[0] : null)}</span></td>" +
-                $"<td>{order.Coffee}</td><td>{order.AddIn}</td><td>{order.TotalPrice}</td><td>" +
-                $"<span style=\"background-color: {(order.isComplementary ? "#28a745" : "#ffc107")}; color: #fff; padding: 3px 1.5rem;\"" +
-                $"class=\"badge\">{(order.isComplementary ? "Complementary" : "Normal")}</span></td><td>{order.CreatedAt.ToString("MMMM dd, yyyy h: mm tt")}</td>" +
-                $"<td>{Utils.GetUserName(order.CreatedBy)}</td></tr>");
-            count++;
-        }
+            foreach (var order in orderList)
+            {
+                var customer = CustomersService.GetByPhoneNumer(order.Customer);
 
-        htmlBuilder.AppendLine("</tbody></table>");
+                htmlBuilder.AppendLine($"<tr><td>{count}</td><td>{order.Customer}" +
+                    $"<span style=\"background-color: {(customer != null && customer.CustomerRole == CustomerRole.Regular ? "#28a745" : "#ffc107")};" +
+                    $"color: #fff; margin: 3px; padding: 2px 2rem;\" class=\"badge\">{(customer != null ? customer.CustomerRole.ToString()[0] : null)}</span></td>" +
+                    $"<td>{order.Coffee}</td><td>{order.AddIn}</td><td>{order.TotalPrice}</td><td>" +
+                    $"<span style=\"background-color: {(order.isComplementary ? "#28a745" : "#ffc107")}; color: #fff; padding: 3px 1.5rem;\"" +
+                    $"class=\"badge\">{(order.isComplementary ? "Complementary" : "Normal")}</span></td><td>{order.CreatedAt.ToString("MMMM dd, yyyy h: mm tt")}</td>" +
+                    $"<td>{Utils.GetUserName(order.CreatedBy)}</td></tr>");
+                count++;
+            }
 
-        htmlBuilder.AppendLine($"<h2>Top 5 Coffees - {month}, {currentYear}</h1>");
-        htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Coffee</th><th>Quantity</th></tr></thead><tbody>"); Dictionary<string, int> topFiveCoffees = OrdersService.GetTop5CoffeesForMonth(month);
-        int tableTwoCount = 1;
-        foreach (var item in topFiveCoffees)
+            htmlBuilder.AppendLine("</tbody></table>");
+
+            htmlBuilder.AppendLine($"<h2>Top 5 Coffees - {month}, {currentYear}</h1>");
+            htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Coffee</th><th>Quantity</th></tr></thead><tbody>"); Dictionary<string, int> topFiveCoffees = OrdersService.GetTop5CoffeesForMonth(month);
+            int tableTwoCount = 1;
+            foreach (var item in topFiveCoffees)
+            {
+                htmlBuilder.AppendLine($"<tr><td>{tableTwoCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
+                tableTwoCount++;
+            }
+            htmlBuilder.AppendLine("</tbody></table>");
+
+            htmlBuilder.AppendLine($"<h2 style=\"margin: 2rem 0;\">Top 5 Add-ins - {month}, {currentYear}</h1>");
+            htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Add Ins</th><th>Quantity</th></tr></thead><tbody>");
+
+            Dictionary<string, int> topFiveAddIns = OrdersService.GetTop5AddInsForMonth(month);
+            int tableThreeCount = 1;
+            foreach (var item in topFiveAddIns)
+            {
+                htmlBuilder.AppendLine($"<tr><td>{tableThreeCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
+                tableThreeCount++;
+            }
+            htmlBuilder.AppendLine("</tbody></table>");
+
+            int revenue = OrdersService.GetRevenueForMonth(month);
+
+            htmlBuilder.AppendLine($"<h2>Revenue for {month}, {currentYear}: Rs. {revenue}</h2>");
+        } else
         {
-            htmlBuilder.AppendLine($"<tr><td>{tableTwoCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
-            tableTwoCount++;
+            htmlBuilder.AppendLine($"<h2>No order in {month}, {currentYear}</h2>");
+
         }
-        htmlBuilder.AppendLine("</tbody></table>");
-
-        htmlBuilder.AppendLine($"<h2 style=\"margin: 2rem 0;\">Top 5 Add-ins - {month}, {currentYear}</h1>");
-        htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Add Ins</th><th>Quantity</th></tr></thead><tbody>");
-
-        Dictionary<string, int> topFiveAddIns = OrdersService.GetTop5AddInsForMonth(month);
-        int tableThreeCount = 1;
-        foreach (var item in topFiveAddIns)
-        {
-            htmlBuilder.AppendLine($"<tr><td>{tableThreeCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
-            tableThreeCount++;
-        }
-        htmlBuilder.AppendLine("</tbody></table>");
-
-        int revenue = OrdersService.GetRevenueForMonth(month);
-
-        htmlBuilder.AppendLine($"<h2>Revenue for {month}, {currentYear}: Rs. {revenue}</h2>");
-
-
-
         htmlBuilder.AppendLine("</body></html>");
 
 
@@ -679,57 +733,60 @@
         IEnumerable<OrderItem> orderList = OrdersService.GetAll();
         int count = 1;
 
-        htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Customer</th><th>Coffee</th><th>Add In</th>" +
+        if (orderList.Count() > 0)
+        {
+            htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Customer</th><th>Coffee</th><th>Add In</th>" +
                "<th>Total Price</th><th>Status</th><th>Ordered At</th><th>Created By</th></tr></thead><tbody>");
 
-        foreach (var order in orderList)
+            foreach (var order in orderList)
+            {
+                var customer = CustomersService.GetByPhoneNumer(order.Customer);
+
+                htmlBuilder.AppendLine($"<tr><td>{count}</td><td>{order.Customer}" +
+                    $"<span style=\"background-color: {(customer != null && customer.CustomerRole == CustomerRole.Regular ? "#28a745" : "#ffc107")};" +
+                    $"color: #fff; margin: 3px; padding: 2px 2rem;\" class=\"badge\">{(customer != null ? customer.CustomerRole.ToString()[0] : null)}</span></td>" +
+                    $"<td>{order.Coffee}</td><td>{order.AddIn}</td><td>{order.TotalPrice}</td><td>" +
+                    $"<span style=\"background-color: {(order.isComplementary ? "#28a745" : "#ffc107")}; color: #fff; padding: 3px 1.5rem;\"" +
+                    $"class=\"badge\">{(order.isComplementary ? "Complementary" : "Normal")}</span></td><td>{order.CreatedAt.ToString("MMMM dd, yyyy h: mm tt")}</td>" +
+                    $"<td>{Utils.GetUserName(order.CreatedBy)}</td></tr>");
+                count++;
+            }
+
+            htmlBuilder.AppendLine("</tbody></table>");
+
+            htmlBuilder.AppendLine($"<h2>Top 5 Coffees - Till Now</h1>");
+            htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Coffee</th><th>Quantity</th></tr></thead><tbody>");
+
+            Dictionary<string, int> topFiveCoffees = OrdersService.GetTop5CoffeesAllTime();
+            int tableTwoCount = 1;
+            foreach (var item in topFiveCoffees)
+            {
+                htmlBuilder.AppendLine($"<tr><td>{tableTwoCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
+                tableTwoCount++;
+            }
+            htmlBuilder.AppendLine("</tbody></table>");
+
+            htmlBuilder.AppendLine($"<h2 style=\"margin: 2rem 0;\">Top 5 Add-ins - Till Now</h1>");
+            htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Add Ins</th><th>Quantity</th></tr></thead><tbody>");
+
+            Dictionary<string, int> topFiveAddIns = OrdersService.GetTop5AddInsAllTime();
+            int tableThreeCount = 1;
+            foreach (var item in topFiveAddIns)
+            {
+                htmlBuilder.AppendLine($"<tr><td>{tableThreeCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
+                tableThreeCount++;
+            }
+            htmlBuilder.AppendLine("</tbody></table>");
+
+            int revenue = OrdersService.GetRevenueTillNow();
+
+            htmlBuilder.AppendLine($"<h2>Revenue Till Now: Rs. {revenue}</h2>");
+        } else
         {
-            var customer = CustomersService.GetByPhoneNumer(order.Customer);
-
-            htmlBuilder.AppendLine($"<tr><td>{count}</td><td>{order.Customer}" +
-                $"<span style=\"background-color: {(customer != null && customer.CustomerRole == CustomerRole.Regular ? "#28a745" : "#ffc107")};" +
-                $"color: #fff; margin: 3px; padding: 2px 2rem;\" class=\"badge\">{(customer != null ? customer.CustomerRole.ToString()[0] : null)}</span></td>" +
-                $"<td>{order.Coffee}</td><td>{order.AddIn}</td><td>{order.TotalPrice}</td><td>" +
-                $"<span style=\"background-color: {(order.isComplementary ? "#28a745" : "#ffc107")}; color: #fff; padding: 3px 1.5rem;\"" +
-                $"class=\"badge\">{(order.isComplementary ? "Complementary" : "Normal")}</span></td><td>{order.CreatedAt.ToString("MMMM dd, yyyy h: mm tt")}</td>" +
-                $"<td>{Utils.GetUserName(order.CreatedBy)}</td></tr>");
-            count++;
+            htmlBuilder.AppendLine($"<h2>Nor orders yet.</h2>");
         }
-
-        htmlBuilder.AppendLine("</tbody></table>");
-
-        htmlBuilder.AppendLine($"<h2>Top 5 Coffees - Till Now</h1>");
-        htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Coffee</th><th>Quantity</th></tr></thead><tbody>"); 
-        
-        Dictionary<string, int> topFiveCoffees = OrdersService.GetTop5CoffeesAllTime();
-        int tableTwoCount = 1;
-        foreach (var item in topFiveCoffees)
-        {
-            htmlBuilder.AppendLine($"<tr><td>{tableTwoCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
-            tableTwoCount++;
-        }
-        htmlBuilder.AppendLine("</tbody></table>");
-
-        htmlBuilder.AppendLine($"<h2 style=\"margin: 2rem 0;\">Top 5 Add-ins - Till Now</h1>");
-        htmlBuilder.AppendLine("<table class=\"table table-bordered\"><thead><tr><th>S.N.</th><th>Add Ins</th><th>Quantity</th></tr></thead><tbody>");
-
-        Dictionary<string, int> topFiveAddIns = OrdersService.GetTop5AddInsAllTime();
-        int tableThreeCount = 1;
-        foreach (var item in topFiveAddIns)
-        {
-            htmlBuilder.AppendLine($"<tr><td>{tableThreeCount}</td><td>{item.Key}</td<td>{item.Value}</td></tr>");
-            tableThreeCount++;
-        }
-        htmlBuilder.AppendLine("</tbody></table>");
-
-        int revenue = OrdersService.GetRevenueTillNow();
-
-        htmlBuilder.AppendLine($"<h2>Revenue Till Now: Rs. {revenue}</h2>");
-
-
 
         htmlBuilder.AppendLine("</body></html>");
-
 
         return htmlBuilder.ToString();
     }

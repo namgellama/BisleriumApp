@@ -1,7 +1,7 @@
 ﻿@page "/addIns"
 
 <nav class="navbar navbar-light bg-light justify-content-between">
-    <h1 class="navbar-brand mb-0 h1">AddIns</h1>dIns
+    <h1 class="navbar-brand mb-0 h1">AddIns</h1>
     <button class="btn btn-primary" type="button" @onclick="OpenAddAddInsDialog">
         <span class="oi oi-plus" /> Add
     </button>
@@ -55,6 +55,10 @@
                 <input id="price" type="number" class="form-control" placeholder="Price"  @bind="_addInsModel.Price" />
                 <label for="price">Price</label>
             </div>
+             <div class="form-floating my-3">
+                <input id="password" type="password" class="form-control" placeholder="Price"  @bind="_password" />
+                <label for="password">Admin Password</label>
+            </div>
 
             @if (!string.IsNullOrEmpty(_editAddInsErrorMessage))
             {
@@ -93,6 +97,8 @@
 
     private AddIns _deleteAddIns { get; set; }
 
+    private string _password { get; set; }
+
 
     protected override void OnInitialized()
     {
@@ -118,7 +124,7 @@
         _showEditAddInsDialog = true;
     }
 
-    
+
     private void OpenDeleteAddInsDialog(AddIns addIns)
     {
         _deleteAddIns = addIns;
@@ -132,6 +138,7 @@
 
             _showEditAddInsDialog = false;
             _editAddInsErrorMessage = null;
+            _password = null;
         }
         else
         {
@@ -140,12 +147,13 @@
                 _editAddInsErrorMessage = "";
                 if (_addInsModel.Id == Guid.Empty)
                 {
-                    _addIns = AddInsService.Create(userId: _globalState.CurrentUser.Id, name: _addInsModel.Name, price: _addInsModel.Price);
+                    _addIns = AddInsService.Create(userId: _globalState.CurrentUser.Id, name: _addInsModel.Name, price: _addInsModel.Price, username: _globalState.CurrentUser.Username, password: _password);
                 } else
                 {
-                    _addIns = AddInsService.Update(userId: _globalState.CurrentUser.Id, id: _addInsModel.Id, name: _addInsModel.Name, price: _addInsModel.Price);
+                    _addIns = AddInsService.Update(userId: _globalState.CurrentUser.Id, id: _addInsModel.Id, name: _addInsModel.Name, price: _addInsModel.Price, username: _globalState.CurrentUser.Username, password: _password);
                 }
                 _showEditAddInsDialog = false;
+                _password = null;
             }
             catch (Exception e)
             {

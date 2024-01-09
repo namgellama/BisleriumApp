@@ -394,15 +394,19 @@ public static class OrdersService
 
         SaveAll(orders);
 
-        if (regularMember)
+
+        if (customer != null)
         {
-            CustomersService.Update(phoneNumber, CustomerRole.Regular); 
-        } else
-        {
-            CustomersService.Update(phoneNumber, CustomerRole.Normal);
+            if (regularMember)
+            {
+                CustomersService.Update(phoneNumber, CustomerRole.Regular);
+            }
+            else
+            {
+                CustomersService.Update(phoneNumber, CustomerRole.Normal);
+            }
         }
-
-
+        
         return orders;
     }
 
