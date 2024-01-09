@@ -1,4 +1,5 @@
 ﻿
+using System.Globalization;
 using System.Text.Json;
 using BisleriumApp.Data.Enums;
 using BisleriumApp.Data.Models;
@@ -39,6 +40,249 @@ public static class OrdersService
         var customerOrders = orders.Where(order => order.Customer == phoneNumber).ToList();
 
         return customerOrders;
+    }
+
+
+    public static List<OrderItem> GetParticularMonthOrders(string month)
+    {
+        var orders = GetAll();
+        /*var currentYear = 2023;*/
+        var currentYear = DateTime.Now.Year;
+
+        var _orders = orders.Where(order => order.CreatedAt.ToString("MMMM") == month && order.CreatedAt.Date.Year == currentYear).ToList();
+
+        return _orders;
+    }
+    
+
+    public static List<OrderItem> GetParticularDayOrders(int day, int month, int year)
+    {
+        var orders = GetAll();
+
+        var _orders = orders.Where(order => order.CreatedAt.Day == day && order.CreatedAt.Month == month && order.CreatedAt.Year == year).ToList();
+
+        return _orders;
+    }
+
+    public static Dictionary<string, int> GetTop5CoffeesForMonth(string month)
+    {
+        var orders = GetAll();
+        /*var currentYear = 2023;*/
+        var currentYear = DateTime.Now.Year;
+
+        var filteredOrders = orders
+            .Where(order => order.CreatedAt.ToString("MMMM") == month && order.CreatedAt.Date.Year == currentYear)
+            .ToList();
+
+        var orderedItems = new Dictionary<string, int>();
+
+        foreach (var order in filteredOrders)
+        {
+            if (orderedItems.ContainsKey(order.Coffee))
+            {
+                orderedItems[order.Coffee]++;
+            } else
+            {
+                orderedItems.Add(order.Coffee, 1);
+            }
+        }
+
+        var topFiveCoffees = orderedItems.OrderByDescending(item => item.Value).Take(5).
+            ToDictionary(item => item.Key, item => item.Value);
+
+        return topFiveCoffees;
+    }
+
+       public static Dictionary<string, int> GetTop5CoffeesAllTime()
+    {
+        var orders = GetAll();
+
+        var orderedItems = new Dictionary<string, int>();
+
+        foreach (var order in orders)
+        {
+            if (orderedItems.ContainsKey(order.Coffee))
+            {
+                orderedItems[order.Coffee]++;
+            } else
+            {
+                orderedItems.Add(order.Coffee, 1);
+            }
+        }
+
+        var topFiveCoffees = orderedItems.OrderByDescending(item => item.Value).Take(5).
+            ToDictionary(item => item.Key, item => item.Value);
+
+        return topFiveCoffees;
+    }
+
+    public static Dictionary<string, int> GetTop5CoffeesForParticularDay(int day, int month, int year)
+    {
+        var orders = GetAll();
+
+        var filteredOrders = orders.Where(order => order.CreatedAt.Day == day && order.CreatedAt.Month == month && order.CreatedAt.Year == year).ToList();
+
+
+        var orderedItems = new Dictionary<string, int>();
+
+        foreach (var order in filteredOrders)
+        {
+            if (orderedItems.ContainsKey(order.Coffee))
+            {
+                orderedItems[order.Coffee]++;
+            } else
+            {
+                orderedItems.Add(order.Coffee, 1);
+            }
+        }
+
+        var topFiveCoffees = orderedItems.OrderByDescending(item => item.Value).Take(5).
+            ToDictionary(item => item.Key, item => item.Value);
+
+        return topFiveCoffees;
+    }
+
+    public static Dictionary<string, int> GetTop5AddInsForMonth(string month)
+    {
+        var orders = GetAll();
+        /*var currentYear = 2023;*/
+        var currentYear = DateTime.Now.Year;
+
+        var filteredOrders = orders
+            .Where(order => order.CreatedAt.ToString("MMMM") == month && order.CreatedAt.Date.Year == currentYear)
+            .ToList();
+
+        var orderedItems = new Dictionary<string, int>();
+
+        foreach (var order in filteredOrders)
+        {
+            if (order.AddIn != null)
+            {
+                if (orderedItems.ContainsKey(order.AddIn))
+                {
+                    orderedItems[order.AddIn]++;
+                }
+                else
+                {
+                    orderedItems.Add(order.AddIn, 1);
+                }
+            }
+           
+        }
+
+        var topFiveAddIns = orderedItems.OrderByDescending(item => item.Value).Take(5).
+            ToDictionary(item => item.Key, item => item.Value);
+
+        return topFiveAddIns;
+    }
+    
+    public static Dictionary<string, int> GetTop5AddInsAllTime()
+    {
+        var orders = GetAll();
+
+        var orderedItems = new Dictionary<string, int>();
+
+        foreach (var order in orders)
+        {
+            if (order.AddIn != null)
+            {
+                if (orderedItems.ContainsKey(order.AddIn))
+                {
+                    orderedItems[order.AddIn]++;
+                }
+                else
+                {
+                    orderedItems.Add(order.AddIn, 1);
+                }
+            }
+           
+        }
+
+        var topFiveAddIns = orderedItems.OrderByDescending(item => item.Value).Take(5).
+            ToDictionary(item => item.Key, item => item.Value);
+
+        return topFiveAddIns;
+    }
+
+    public static Dictionary<string, int> GetTop5AddInsForParticularDay(int day, int month, int year)
+    {
+        var orders = GetAll();
+
+        var filteredOrders =  orders.Where(order => order.CreatedAt.Day == day && order.CreatedAt.Month == month && order.CreatedAt.Year == year).ToList();
+
+
+        var orderedItems = new Dictionary<string, int>();
+
+        foreach (var order in filteredOrders)
+        {
+            if(order.AddIn != null)
+            {
+                if (orderedItems.ContainsKey(order.AddIn))
+                {
+                    orderedItems[order.AddIn]++;
+                }
+                else
+                {
+                    orderedItems.Add(order.AddIn, 1);
+                }
+            }
+        }
+     
+        var topFiveAddIns = orderedItems.OrderByDescending(item => item.Value).Take(5).
+            ToDictionary(item => item.Key, item => item.Value);
+
+        return topFiveAddIns;
+    }
+    
+    public static int GetRevenueForMonth(string month)
+    {
+        var orders = GetAll();
+        /*var currentYear = 2023;*/
+        var currentYear = DateTime.Now.Year;
+
+        var filteredOrders = orders
+            .Where(order => order.CreatedAt.ToString("MMMM") == month && order.CreatedAt.Date.Year == currentYear)
+            .ToList();
+
+        int totalRevenue = 0;
+
+        foreach (var order in filteredOrders)
+        {
+            totalRevenue += order.TotalPrice;
+        }
+
+        return totalRevenue;
+    }
+        
+    public static int GetRevenueForParticularDay(int day, int month, int year)
+    {
+        var orders = GetAll();
+
+        var filteredOrders = orders.Where(order => order.CreatedAt.Day == day && order.CreatedAt.Month == month && order.CreatedAt.Year == year).ToList();
+
+
+        int totalRevenue = 0;
+
+        foreach (var order in filteredOrders)
+        {
+            totalRevenue += order.TotalPrice;
+        }
+
+        return totalRevenue;
+    }        
+
+    public static int GetRevenueTillNow()
+    {
+        var orders = GetAll();
+
+        int totalRevenue = 0;
+
+        foreach (var order in orders)
+        {
+            totalRevenue += order.TotalPrice;
+        }
+
+        return totalRevenue;
     }
 
 
@@ -84,6 +328,11 @@ public static class OrdersService
         if (phoneNumber == null || coffee == null || coffee.Length == 0 || phoneNumber.Length == 0)
         {
             throw new Exception("Order invalid! Check order credentials");
+        }
+
+        if (addIn.Length == 0)
+        {
+            addIn = null;
         }
 
         int totalOrder = 0;
@@ -172,7 +421,7 @@ public static class OrdersService
 
         var creator = UsersService.GetById(order.CreatedBy);
 
-        if (user.Id == creator.Id || user.Role.ToString() == "Admin")
+        if (user.Id == creator.Id || user.Role == Role.Admin)
         {
             orders.Remove(order);
             SaveAll(orders);

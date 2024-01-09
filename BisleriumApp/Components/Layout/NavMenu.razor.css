@@ -99,3 +99,8 @@
         overflow-y: auto;
     }
 }
+
+
+.input-group-append {
+    cursor: pointer;
+}

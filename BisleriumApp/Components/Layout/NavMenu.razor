@@ -13,41 +13,41 @@
         <div class="nav-item px-3"><h5 class="text-light">Welcome <strong>@Username</strong>!</h5></div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="orders">
-                <span class="oi oi-list-rich" /> Orders
+                <span class="oi oi-list-rich mb-1 me-1" /> Orders
             </NavLink>
         </div>
         @if (UserRole == Role.Admin)
         {
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="users">
-                    <span class="oi oi-person" /> Users
+                    <span class="oi oi-person mb-1 me-1" /> Users
                 </NavLink>
             </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="coffees">
-                    <span class="oi oi-person" /> Coffees
+                    <span class="oi oi-person mb-1 me-1" /> Coffees
                 </NavLink>
             </div> 
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="addIns">
-                    <span class="oi oi-person" /> Add-ins
+                    <span class="oi oi-person mb-1 me-1" /> Add-ins
                 </NavLink>
             </div>
         }
         
         <div class="nav-item px-3">
                 <NavLink class="nav-link" href="customers">
-                    <span class="oi oi-person" /> Customers
+                <span class="oi oi-person mb-1 me-1" /> Customers
                 </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="" href="change-password">
-                <span class="oi oi-key" /> Change Password
+                <span class="oi oi-key mb-1 me-1" /> Change Password
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link text-danger" role="button" @onclick="LogoutHandler">
-                <span class="oi oi-account-logout" /> Logout
+                <span class="oi oi-account-logout mb-1 me-1" /> Logout
             </NavLink>
         </div>
     </nav>

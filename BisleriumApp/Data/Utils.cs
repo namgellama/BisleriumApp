@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using BisleriumApp.Data.Services;
 
 namespace BisleriumApp.Data;
 
@@ -76,7 +77,6 @@ public static class Utils
     }
 
 
-
     public static int CountWeekdays(DateTime date)
     {
         int weekdays = 0;
@@ -92,4 +92,12 @@ public static class Utils
 
         return weekdays;
     }
+
+    public static string GetUserName(Guid userId)
+    {
+        var creator = UsersService.GetById(userId);
+        return creator == null ? "Unknown" : creator.Username;
+    }
+
+
 }

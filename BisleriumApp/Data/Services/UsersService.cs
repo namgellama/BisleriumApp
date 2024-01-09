@@ -87,7 +87,6 @@ public static class UsersService
             throw new Exception("User not found.");
         }
 
-        // TodosService.DeleteByUserId(id);
         users.Remove(user);
         SaveAll(users);
 
